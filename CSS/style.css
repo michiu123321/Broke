@@ -1,0 +1,625 @@
+/* ============================================================
+   CSS Custom Properties — Dark Theme (default)
+   ============================================================ */
+:root[data-theme="dark"] {
+  --bg-primary:    #0d1117;
+  --bg-secondary:  #161b22;
+  --bg-widget:     #1c2230;
+  --bg-input:      #0d1117;
+  --text-primary:  #e6edf3;
+  --text-secondary:#8b949e;
+  --text-muted:    #484f58;
+  --accent:        #58a6ff;
+  --accent-hover:  #79b8ff;
+  --danger:        #f85149;
+  --success:       #3fb950;
+  --border:        #30363d;
+  --border-focus:  #58a6ff;
+  --shadow:        0 4px 24px rgba(0,0,0,0.5);
+  --timer-done-bg: rgba(248, 81, 73, 0.15);
+  --timer-done-border: #f85149;
+}
+
+/* ============================================================
+   CSS Custom Properties — Light Theme
+   ============================================================ */
+:root[data-theme="light"] {
+  --bg-primary:    #f0f2f5;
+  --bg-secondary:  #ffffff;
+  --bg-widget:     #ffffff;
+  --bg-input:      #f6f8fa;
+  --text-primary:  #1f2328;
+  --text-secondary:#57606a;
+  --text-muted:    #afb8c1;
+  --accent:        #0969da;
+  --accent-hover:  #0550ae;
+  --danger:        #cf222e;
+  --success:       #1a7f37;
+  --border:        #d0d7de;
+  --border-focus:  #0969da;
+  --shadow:        0 4px 24px rgba(0,0,0,0.08);
+  --timer-done-bg: rgba(207, 34, 46, 0.08);
+  --timer-done-border: #cf222e;
+}
+
+/* ============================================================
+   Reset & Base
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+               Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* ============================================================
+   Focus Indicators (accessibility)
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   Utility
+   ============================================================ */
+.hidden {
+  display: none !important;
+}
+
+/* ============================================================
+   Header
+   ============================================================ */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem 2rem 1rem;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+/* ============================================================
+   Greeting Widget
+   ============================================================ */
+.greeting-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.greeting-widget__clock-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.greeting-widget__clock {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.greeting-widget__date {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.greeting-widget__name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.greeting-widget__text {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.greeting-widget__username {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  border-bottom: 1px dashed var(--accent);
+  padding-bottom: 1px;
+  transition: color 0.15s ease;
+}
+
+.greeting-widget__username:empty::after {
+  content: '+ Add name';
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  border-bottom-color: var(--text-muted);
+}
+
+.greeting-widget__username:hover {
+  color: var(--accent-hover);
+}
+
+.greeting-widget__username-input {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border: 1px solid var(--border-focus);
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  width: 180px;
+  transition: border-color 0.15s ease;
+}
+
+/* ============================================================
+   Theme Toggle Button
+   ============================================================ */
+.theme-toggle {
+  background: var(--bg-widget);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+              transform 0.1s ease;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.theme-toggle:hover {
+  background-color: var(--border);
+  transform: scale(1.05);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+/* ============================================================
+   Dashboard Grid
+   ============================================================ */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem 2rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ============================================================
+   Widget Card
+   ============================================================ */
+.widget {
+  background-color: var(--bg-widget);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  transition: background-color 0.25s ease, border-color 0.25s ease,
+              box-shadow 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.widget__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.45rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+              color 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn:hover {
+  background-color: var(--border);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn--accent {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn--accent:hover {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn--sm {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.btn--danger {
+  color: var(--danger);
+  border-color: transparent;
+  background: transparent;
+}
+
+.btn--danger:hover {
+  background-color: rgba(248, 81, 73, 0.12);
+  border-color: var(--danger);
+}
+
+.btn--icon {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn--icon:hover {
+  background-color: var(--border);
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   Focus Timer Widget
+   ============================================================ */
+.timer__display {
+  font-size: 4rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  padding: 0.5rem 0;
+  border-radius: 8px;
+  transition: background-color 0.3s ease, color 0.3s ease,
+              border-color 0.3s ease;
+  border: 2px solid transparent;
+}
+
+/* Timer done state */
+.widget.timer--done .timer__display {
+  background-color: var(--timer-done-bg);
+  border-color: var(--timer-done-border);
+  color: var(--timer-done-border);
+  animation: pulse-border 1s ease-in-out 3;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: var(--timer-done-border); }
+  50%       { border-color: transparent; }
+}
+
+.timer__controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.timer__duration-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.timer__duration-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.timer__duration-input {
+  width: 60px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.9rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  text-align: center;
+  transition: border-color 0.15s ease;
+}
+
+.timer__duration-input:focus {
+  border-color: var(--border-focus);
+  outline: none;
+}
+
+/* ============================================================
+   To-Do List Widget
+   ============================================================ */
+.todo-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.todo-form__input {
+  flex: 1;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.95rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease;
+}
+
+.todo-form__input::placeholder {
+  color: var(--text-muted);
+}
+
+.todo-form__input:focus {
+  border-color: var(--border-focus);
+  outline: none;
+}
+
+.todo-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* Scrollbar styling */
+.todo-list::-webkit-scrollbar {
+  width: 4px;
+}
+.todo-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.todo-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-input);
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+              opacity 0.15s ease;
+}
+
+.task:hover {
+  border-color: var(--border-focus);
+}
+
+.task__toggle {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: transparent;
+  transition: border-color 0.15s ease, background-color 0.15s ease,
+              color 0.15s ease;
+  padding: 0;
+}
+
+.task__toggle:hover {
+  border-color: var(--success);
+}
+
+.task--done .task__toggle {
+  background-color: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+
+.task__text {
+  flex: 1;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  word-break: break-word;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.task--done .task__text {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.task__edit-input {
+  flex: 1;
+  font-size: 0.95rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-focus);
+  border-radius: 4px;
+  color: var(--text-primary);
+  padding: 0.15rem 0.4rem;
+}
+
+.task__actions {
+  display: flex;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Quick Links Widget
+   ============================================================ */
+.links-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.links-form__input {
+  flex: 1;
+  min-width: 100px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease;
+}
+
+.links-form__input::placeholder {
+  color: var(--text-muted);
+}
+
+.links-form__input:focus {
+  border-color: var(--border-focus);
+  outline: none;
+}
+
+.links-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.link-item {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.link-item:hover {
+  border-color: var(--accent);
+}
+
+.link-item__btn {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+  background: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.link-item__btn:hover {
+  background-color: var(--accent);
+  color: #fff;
+}
+
+.link-item__remove {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  line-height: 1;
+}
+
+.link-item__remove:hover {
+  background-color: var(--danger);
+  color: #fff;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 600px) {
+  .header {
+    padding: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .greeting-widget__clock {
+    font-size: 1.8rem;
+  }
+
+  .greeting-widget__text {
+    font-size: 1rem;
+  }
+
+  .dashboard-grid {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .timer__display {
+    font-size: 3rem;
+  }
+
+  .todo-form {
+    flex-direction: column;
+  }
+
+  .links-form {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 320px) {
+  .greeting-widget__clock {
+    font-size: 1.4rem;
+  }
+
+  .timer__display {
+    font-size: 2.5rem;
+  }
+}
