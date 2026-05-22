@@ -65,30 +65,66 @@
   <!-- ===== MAIN GRID ===== -->
   <main class="dashboard-grid">
 
-    <!-- Focus Timer Widget -->
+    <!-- Timer Widget -->
     <section id="timer-widget" class="widget" aria-labelledby="timer-heading">
-      <h2 id="timer-heading" class="widget__title">Focus Timer</h2>
+      <h2 id="timer-heading" class="widget__title">Timer</h2>
 
-      <div id="timer-display" class="timer__display">25:00</div>
-
-      <div class="timer__controls">
-        <button id="timer-start" class="btn btn--accent" aria-label="Start timer">Start</button>
-        <button id="timer-stop" class="btn" aria-label="Stop timer">Stop</button>
-        <button id="timer-reset" class="btn" aria-label="Reset timer">Reset</button>
+      <!-- Mode tabs -->
+      <div class="timer__tabs" role="tablist" aria-label="Timer mode">
+        <button id="tab-pomodoro" class="timer__tab timer__tab--active" role="tab" aria-selected="true" aria-controls="panel-pomodoro">Pomodoro</button>
+        <button id="tab-stopwatch" class="timer__tab" role="tab" aria-selected="false" aria-controls="panel-stopwatch">Stopwatch</button>
       </div>
 
-      <div class="timer__duration-row">
-        <label for="timer-duration-input" class="timer__duration-label">Duration (min):</label>
-        <input
-          id="timer-duration-input"
-          class="timer__duration-input"
-          type="number"
-          min="1"
-          max="120"
-          value="25"
-          aria-label="Timer duration in minutes"
-        />
-        <button id="timer-duration-set" class="btn btn--sm" aria-label="Set timer duration">Set</button>
+      <!-- Pomodoro panel -->
+      <div id="panel-pomodoro" class="timer__panel" role="tabpanel" aria-labelledby="tab-pomodoro">
+
+        <!-- Pomodoro mode buttons -->
+        <div class="pomo__modes" role="group" aria-label="Pomodoro mode">
+          <button id="pomo-work"        class="pomo__mode-btn pomo__mode-btn--active" data-mode="work"        aria-pressed="true">Work</button>
+          <button id="pomo-short-break" class="pomo__mode-btn"                        data-mode="short-break" aria-pressed="false">Short Break</button>
+          <button id="pomo-long-break"  class="pomo__mode-btn"                        data-mode="long-break"  aria-pressed="false">Long Break</button>
+        </div>
+
+        <!-- Session counter -->
+        <div class="pomo__session-row">
+          <span class="pomo__session-label">Sessions completed:</span>
+          <span id="pomo-session-count" class="pomo__session-count">0</span>
+          <button id="pomo-session-reset" class="btn btn--sm" aria-label="Reset session count" title="Reset session count">↺</button>
+        </div>
+
+        <div id="timer-display" class="timer__display">25:00</div>
+
+        <div class="timer__controls">
+          <button id="timer-start" class="btn btn--accent" aria-label="Start timer">Start</button>
+          <button id="timer-stop"  class="btn"             aria-label="Stop timer">Stop</button>
+          <button id="timer-reset" class="btn"             aria-label="Reset timer">Reset</button>
+        </div>
+
+        <!-- Custom duration -->
+        <div class="timer__duration-row">
+          <label for="timer-duration-input" class="timer__duration-label">Custom (min):</label>
+          <input
+            id="timer-duration-input"
+            class="timer__duration-input"
+            type="number"
+            min="1"
+            max="120"
+            value="25"
+            aria-label="Timer duration in minutes"
+          />
+          <button id="timer-duration-set" class="btn btn--sm" aria-label="Set timer duration">Set</button>
+        </div>
+      </div>
+
+      <!-- Stopwatch panel -->
+      <div id="panel-stopwatch" class="timer__panel hidden" role="tabpanel" aria-labelledby="tab-stopwatch">
+        <div id="stopwatch-display" class="timer__display">00:00:00</div>
+
+        <div class="timer__controls">
+          <button id="sw-start" class="btn btn--accent" aria-label="Start stopwatch">Start</button>
+          <button id="sw-stop" class="btn" aria-label="Stop stopwatch">Stop</button>
+          <button id="sw-reset" class="btn" aria-label="Reset stopwatch">Reset</button>
+        </div>
       </div>
     </section>
 
@@ -108,6 +144,23 @@
         />
         <button type="submit" class="btn btn--accent" aria-label="Add task">Add</button>
       </form>
+
+      <!-- Duplicate warning -->
+      <div id="todo-duplicate-msg" class="todo-duplicate-msg hidden" role="alert" aria-live="assertive">
+        ⚠ Task already exists
+      </div>
+
+      <!-- Sort controls -->
+      <div class="todo-sort-row">
+        <label for="todo-sort" class="todo-sort-label">Sort:</label>
+        <select id="todo-sort" class="todo-sort-select" aria-label="Sort tasks">
+          <option value="default">Default (added order)</option>
+          <option value="az">A → Z</option>
+          <option value="za">Z → A</option>
+          <option value="pending">Pending first</option>
+          <option value="done">Done first</option>
+        </select>
+      </div>
 
       <ul id="todo-list" class="todo-list" aria-label="Task list" aria-live="polite"></ul>
     </section>

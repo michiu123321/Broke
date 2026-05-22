@@ -225,19 +225,33 @@ function initGreeting() {
 }
 
 /* ============================================================
-   4. TIMER MODULE
+   4. TIMER MODULE  (Pomodoro countdown + Stopwatch)
    ============================================================ */
 
-/** Timer state */
+/** Shared timer state */
 var timerInterval = null;
 var remainingSeconds = 0;
 var timerWidgetEl, timerDisplayEl;
 
+/** Stopwatch state */
+var swInterval = null;
+var swElapsedSeconds = 0;
+var swDisplayEl;
+
 /**
- * Format total seconds as "MM:SS".
- * @param {number} totalSeconds  Non-negative integer.
- * @returns {string}
+ * Pomodoro mode durations in minutes.
+ * Defaults: work=25, short-break=5, long-break=15.
  */
+var POMO_DEFAULTS = { work: 25, 'short-break': 5, 'long-break': 15 };
+
+/** Current pomodoro mode: 'work' | 'short-break' | 'long-break' */
+var currentPomoMode = 'work';
+
+/** Number of completed work sessions */
+var pomoSessions = 0;
+
+/* ---- Formatters ---- */
+
 function formatCountdown(totalSeconds) {
   var s = Math.max(0, Math.floor(totalSeconds));
   var m = Math.floor(s / 60);
@@ -245,25 +259,81 @@ function formatCountdown(totalSeconds) {
   return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
 }
 
+function formatStopwatch(totalSeconds) {
+  var s = Math.max(0, Math.floor(totalSeconds));
+  var h = Math.floor(s / 3600);
+  var m = Math.floor((s % 3600) / 60);
+  var sec = s % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+}
+
+/* ---- Pomodoro helpers ---- */
+
 /**
- * Update the timer display element.
+ * Return the stored duration (minutes) for a given mode.
+ * @param {string} mode
+ * @returns {number}
  */
+function getModeDuration(mode) {
+  return storageGet('dashboard_pomo_' + mode, POMO_DEFAULTS[mode] || 25);
+}
+
+/**
+ * Apply a pomodoro mode: update buttons, widget colour, timer display.
+ * Does NOT start the timer.
+ * @param {string} mode  'work' | 'short-break' | 'long-break'
+ */
+function applyPomoMode(mode) {
+  currentPomoMode = mode;
+  stopTimer();
+
+  // Update mode button states
+  var modeBtns = document.querySelectorAll('.pomo__mode-btn');
+  modeBtns.forEach(function (btn) {
+    var active = btn.getAttribute('data-mode') === mode;
+    btn.classList.toggle('pomo__mode-btn--active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+
+  // Update widget colour class
+  if (timerWidgetEl) {
+    timerWidgetEl.classList.remove('pomo--work', 'pomo--short-break', 'pomo--long-break', 'timer--done');
+    timerWidgetEl.classList.add('pomo--' + mode);
+  }
+
+  // Load duration for this mode
+  var minutes = getModeDuration(mode);
+  remainingSeconds = minutes * 60;
+
+  // Sync custom input to current mode's duration
+  var durationInput = document.getElementById('timer-duration-input');
+  if (durationInput) durationInput.value = minutes;
+
+  renderTimer();
+}
+
+/**
+ * Increment session counter (called when a work session completes).
+ */
+function incrementSessions() {
+  pomoSessions++;
+  storageSet('dashboard_pomo_sessions', pomoSessions);
+  var el = document.getElementById('pomo-session-count');
+  if (el) el.textContent = String(pomoSessions);
+}
+
+/* ---- Pomodoro countdown ---- */
+
 function renderTimer() {
   if (timerDisplayEl) {
     timerDisplayEl.textContent = formatCountdown(remainingSeconds);
   }
 }
 
-/**
- * Start the countdown. Guard against double-start.
- */
 function startTimer() {
-  if (timerInterval !== null) return; // already running
-  if (remainingSeconds <= 0) return;  // nothing to count down
-
-  // Remove done state if restarting
+  if (timerInterval !== null) return;
+  if (remainingSeconds <= 0) return;
   if (timerWidgetEl) timerWidgetEl.classList.remove('timer--done');
-
   timerInterval = setInterval(function () {
     remainingSeconds--;
     renderTimer();
@@ -275,9 +345,6 @@ function startTimer() {
   }, 1000);
 }
 
-/**
- * Pause the countdown.
- */
 function stopTimer() {
   if (timerInterval !== null) {
     clearInterval(timerInterval);
@@ -285,27 +352,25 @@ function stopTimer() {
   }
 }
 
-/**
- * Reset the countdown to the stored duration.
- */
 function resetTimer() {
   stopTimer();
-  var durationMin = storageGet('dashboard_timer_duration', 25);
-  remainingSeconds = durationMin * 60;
+  var minutes = getModeDuration(currentPomoMode);
+  remainingSeconds = minutes * 60;
   if (timerWidgetEl) timerWidgetEl.classList.remove('timer--done');
   renderTimer();
 }
 
-/**
- * Fire visual + audible alert when the timer reaches zero.
- */
 function triggerTimerAlert() {
-  // Visual
   if (timerWidgetEl) timerWidgetEl.classList.add('timer--done');
 
-  // Audible — Web Audio API beep
+  // Count completed work sessions
+  if (currentPomoMode === 'work') {
+    incrementSessions();
+  }
+
+  // Audible beep
   try {
-    var AudioCtx = window.AudioContext || window.webkitAudioContext;
+    var AudioCtx = window.AudioContext || (window).webkitAudioContext;
     if (AudioCtx) {
       var ctx = new AudioCtx();
       var osc = ctx.createOscillator();
@@ -319,8 +384,62 @@ function triggerTimerAlert() {
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 1.2);
     }
-  } catch (e) {
-    // AudioContext unavailable — visual alert still fires
+  } catch (e) { /* visual alert still fires */ }
+}
+
+/* ---- Stopwatch ---- */
+
+function renderStopwatch() {
+  if (swDisplayEl) {
+    swDisplayEl.textContent = formatStopwatch(swElapsedSeconds);
+  }
+}
+
+function startStopwatch() {
+  if (swInterval !== null) return;
+  swInterval = setInterval(function () {
+    swElapsedSeconds++;
+    renderStopwatch();
+  }, 1000);
+}
+
+function stopStopwatch() {
+  if (swInterval !== null) {
+    clearInterval(swInterval);
+    swInterval = null;
+  }
+}
+
+function resetStopwatch() {
+  stopStopwatch();
+  swElapsedSeconds = 0;
+  renderStopwatch();
+}
+
+/* ---- Tab switching (Pomodoro ↔ Stopwatch) ---- */
+
+function switchTimerTab(mode) {
+  var pomodoroPanel = document.getElementById('panel-pomodoro');
+  var stopwatchPanel = document.getElementById('panel-stopwatch');
+  var tabPomodoro   = document.getElementById('tab-pomodoro');
+  var tabStopwatch  = document.getElementById('tab-stopwatch');
+
+  if (mode === 'stopwatch') {
+    pomodoroPanel.classList.add('hidden');
+    stopwatchPanel.classList.remove('hidden');
+    tabPomodoro.classList.remove('timer__tab--active');
+    tabPomodoro.setAttribute('aria-selected', 'false');
+    tabStopwatch.classList.add('timer__tab--active');
+    tabStopwatch.setAttribute('aria-selected', 'true');
+    stopTimer();
+  } else {
+    stopwatchPanel.classList.add('hidden');
+    pomodoroPanel.classList.remove('hidden');
+    tabStopwatch.classList.remove('timer__tab--active');
+    tabStopwatch.setAttribute('aria-selected', 'false');
+    tabPomodoro.classList.add('timer__tab--active');
+    tabPomodoro.setAttribute('aria-selected', 'true');
+    stopStopwatch();
   }
 }
 
@@ -328,45 +447,83 @@ function triggerTimerAlert() {
  * Initialize the timer module.
  */
 function initTimer() {
-  timerWidgetEl = document.getElementById('timer-widget');
+  timerWidgetEl  = document.getElementById('timer-widget');
   timerDisplayEl = document.getElementById('timer-display');
+  swDisplayEl    = document.getElementById('stopwatch-display');
 
-  var startBtn = document.getElementById('timer-start');
-  var stopBtn = document.getElementById('timer-stop');
-  var resetBtn = document.getElementById('timer-reset');
+  var startBtn      = document.getElementById('timer-start');
+  var stopBtn       = document.getElementById('timer-stop');
+  var resetBtn      = document.getElementById('timer-reset');
   var durationInput = document.getElementById('timer-duration-input');
   var durationSetBtn = document.getElementById('timer-duration-set');
 
-  // Load stored duration
-  var storedDuration = storageGet('dashboard_timer_duration', 25);
-  remainingSeconds = storedDuration * 60;
-  if (durationInput) durationInput.value = storedDuration;
-  renderTimer();
+  // Restore session count
+  pomoSessions = storageGet('dashboard_pomo_sessions', 0);
+  var sessionCountEl = document.getElementById('pomo-session-count');
+  if (sessionCountEl) sessionCountEl.textContent = String(pomoSessions);
 
+  // Apply default mode (work) — sets remainingSeconds and syncs display
+  applyPomoMode('work');
+  renderStopwatch();
+
+  // Pomodoro controls
   if (startBtn) startBtn.addEventListener('click', startTimer);
-  if (stopBtn) stopBtn.addEventListener('click', stopTimer);
+  if (stopBtn)  stopBtn.addEventListener('click',  stopTimer);
   if (resetBtn) resetBtn.addEventListener('click', resetTimer);
 
-  // Set duration
+  // Mode buttons
+  var modeBtns = document.querySelectorAll('.pomo__mode-btn');
+  modeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      applyPomoMode(btn.getAttribute('data-mode'));
+    });
+  });
+
+  // Session reset button
+  var sessionResetBtn = document.getElementById('pomo-session-reset');
+  if (sessionResetBtn) {
+    sessionResetBtn.addEventListener('click', function () {
+      pomoSessions = 0;
+      storageSet('dashboard_pomo_sessions', 0);
+      var el = document.getElementById('pomo-session-count');
+      if (el) el.textContent = '0';
+    });
+  }
+
+  // Custom duration — applies to the currently active mode
   function applyDuration() {
     var val = parseInt(durationInput ? durationInput.value : '25', 10);
     if (!isNaN(val) && val >= 1 && val <= 120) {
-      storageSet('dashboard_timer_duration', val);
-      resetTimer();
+      storageSet('dashboard_pomo_' + currentPomoMode, val);
+      remainingSeconds = val * 60;
+      stopTimer();
+      if (timerWidgetEl) timerWidgetEl.classList.remove('timer--done');
+      renderTimer();
     } else if (durationInput) {
-      // Restore to stored value on invalid input
-      durationInput.value = storageGet('dashboard_timer_duration', 25);
+      durationInput.value = getModeDuration(currentPomoMode);
     }
   }
 
-  if (durationSetBtn) {
-    durationSetBtn.addEventListener('click', applyDuration);
-  }
+  if (durationSetBtn) durationSetBtn.addEventListener('click', applyDuration);
   if (durationInput) {
     durationInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') applyDuration();
     });
   }
+
+  // Stopwatch controls
+  var swStart = document.getElementById('sw-start');
+  var swStop  = document.getElementById('sw-stop');
+  var swReset = document.getElementById('sw-reset');
+  if (swStart) swStart.addEventListener('click', startStopwatch);
+  if (swStop)  swStop.addEventListener('click',  stopStopwatch);
+  if (swReset) swReset.addEventListener('click', resetStopwatch);
+
+  // Tab switching
+  var tabPomodoro  = document.getElementById('tab-pomodoro');
+  var tabStopwatch = document.getElementById('tab-stopwatch');
+  if (tabPomodoro)  tabPomodoro.addEventListener('click',  function () { switchTimerTab('pomodoro'); });
+  if (tabStopwatch) tabStopwatch.addEventListener('click', function () { switchTimerTab('stopwatch'); });
 }
 
 /* ============================================================
@@ -387,14 +544,29 @@ function createTask(text) {
 }
 
 /**
- * Add a task to the list. Rejects empty/whitespace text.
+ * Check if a task with the same text already exists (case-insensitive).
  * @param {Array} tasks
  * @param {string} text
- * @returns {Array}
+ * @returns {boolean}
+ */
+function isDuplicateTask(tasks, text) {
+  var normalized = text.trim().toLowerCase();
+  return tasks.some(function (t) {
+    return t.text.toLowerCase() === normalized;
+  });
+}
+
+/**
+ * Add a task to the list. Rejects empty/whitespace text and duplicates.
+ * Returns { tasks, duplicate } where duplicate is true if rejected as duplicate.
+ * @param {Array} tasks
+ * @param {string} text
+ * @returns {{ tasks: Array, duplicate: boolean }}
  */
 function addTask(tasks, text) {
-  if (!text || !text.trim()) return tasks;
-  return tasks.concat([createTask(text)]);
+  if (!text || !text.trim()) return { tasks: tasks, duplicate: false };
+  if (isDuplicateTask(tasks, text)) return { tasks: tasks, duplicate: true };
+  return { tasks: tasks.concat([createTask(text)]), duplicate: false };
 }
 
 /**
@@ -433,15 +605,60 @@ function deleteTask(tasks, id) {
   return tasks.filter(function (t) { return t.id !== id; });
 }
 
+/**
+ * Return a sorted copy of tasks based on the given sort key.
+ * Original array is not mutated.
+ * @param {Array} tasks
+ * @param {string} sortKey  'default' | 'az' | 'za' | 'pending' | 'done'
+ * @returns {Array}
+ */
+function sortedTasks(tasks, sortKey) {
+  var copy = tasks.slice();
+  if (sortKey === 'az') {
+    copy.sort(function (a, b) { return a.text.toLowerCase().localeCompare(b.text.toLowerCase()); });
+  } else if (sortKey === 'za') {
+    copy.sort(function (a, b) { return b.text.toLowerCase().localeCompare(a.text.toLowerCase()); });
+  } else if (sortKey === 'pending') {
+    copy.sort(function (a, b) { return (a.done === b.done) ? 0 : a.done ? 1 : -1; });
+  } else if (sortKey === 'done') {
+    copy.sort(function (a, b) { return (a.done === b.done) ? 0 : a.done ? -1 : 1; });
+  }
+  // 'default' — no sort, preserve insertion order
+  return copy;
+}
+
 /** Module state */
 var todos = [];
 var todoListEl;
+var currentSortKey = 'default';
 
 /**
  * Persist the current todos array to localStorage.
  */
 function saveTodos() {
   storageSet('dashboard_todos', todos);
+}
+
+/**
+ * Show or hide the duplicate warning message.
+ * Auto-hides after 2.5 seconds.
+ * @param {boolean} show
+ */
+var duplicateMsgTimer = null;
+function showDuplicateWarning(show) {
+  var msg = document.getElementById('todo-duplicate-msg');
+  if (!msg) return;
+  if (show) {
+    msg.classList.remove('hidden');
+    if (duplicateMsgTimer) clearTimeout(duplicateMsgTimer);
+    duplicateMsgTimer = setTimeout(function () {
+      msg.classList.add('hidden');
+      duplicateMsgTimer = null;
+    }, 2500);
+  } else {
+    msg.classList.add('hidden');
+    if (duplicateMsgTimer) { clearTimeout(duplicateMsgTimer); duplicateMsgTimer = null; }
+  }
 }
 
 /**
@@ -482,7 +699,6 @@ function buildTaskElement(task) {
   editBtn.setAttribute('title', 'Edit task');
   editBtn.textContent = '✎';
   editBtn.addEventListener('click', function () {
-    // Replace text span with an input
     var input = document.createElement('input');
     input.className = 'task__edit-input';
     input.type = 'text';
@@ -499,7 +715,7 @@ function buildTaskElement(task) {
 
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') commitEdit();
-      if (e.key === 'Escape') renderTodos(); // cancel
+      if (e.key === 'Escape') renderTodos();
     });
     input.addEventListener('blur', commitEdit);
 
@@ -531,12 +747,13 @@ function buildTaskElement(task) {
 }
 
 /**
- * Re-render the entire todo list from the todos array.
+ * Re-render the entire todo list from the todos array, applying current sort.
  */
 function renderTodos() {
   if (!todoListEl) return;
   todoListEl.innerHTML = '';
-  todos.forEach(function (task) {
+  var displayed = sortedTasks(todos, currentSortKey);
+  displayed.forEach(function (task) {
     todoListEl.appendChild(buildTaskElement(task));
   });
 }
@@ -548,18 +765,36 @@ function initTodos() {
   todoListEl = document.getElementById('todo-list');
   var form = document.getElementById('todo-form');
   var input = document.getElementById('todo-input');
+  var sortSelect = document.getElementById('todo-sort');
 
   // Load from localStorage
   todos = storageGet('dashboard_todos', []);
+  currentSortKey = storageGet('dashboard_todo_sort', 'default');
+  if (sortSelect) sortSelect.value = currentSortKey;
   renderTodos();
+
+  // Sort change
+  if (sortSelect) {
+    sortSelect.addEventListener('change', function () {
+      currentSortKey = sortSelect.value;
+      storageSet('dashboard_todo_sort', currentSortKey);
+      renderTodos();
+    });
+  }
 
   if (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var text = input ? input.value : '';
-      var updated = addTask(todos, text);
-      if (updated.length !== todos.length) {
-        todos = updated;
+      var result = addTask(todos, text);
+      if (result.duplicate) {
+        showDuplicateWarning(true);
+        if (input) { input.select(); }
+        return;
+      }
+      showDuplicateWarning(false);
+      if (result.tasks.length !== todos.length) {
+        todos = result.tasks;
         saveTodos();
         renderTodos();
         if (input) {
